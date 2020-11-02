@@ -86,9 +86,8 @@ def main():
         sys.exit("Error: no command line is given")
 
     if eofile:
-        r = subprocess.run(command_line, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         with open(eofile, 'wb') as outp:
-            outp.write(r.stdout)
+            r = subprocess.run(command_line, stdout=outp, stderr=subprocess.STDOUT)
         sys.exit(r.returncode)
     else:
         outp = open(outfile, 'wb') if outfile else None
