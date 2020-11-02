@@ -3,6 +3,26 @@ ooption
 
 Add -o (save to file) option to any command. 
 
+## What? Why?
+
+Have you ever had trouble with interference between command-invoking command and redirect?
+
+For example, a command line:
+
+```sh
+ls *.txt | xargs -I {} head -n 3 {} > {}-head.out
+```
+
+does NOT create `*-head.out` file for each of the `*.txt` files but creates one file `{}-head.out` containing outputs of all `head` command executions.
+
+`ooption` is here to help!
+
+You can now run as follows:
+
+```sh
+ls *.txt | xargs -I {} ooption -o {}-head.out head -3 {}
+```
+
 ## Usage:
 
 ```
