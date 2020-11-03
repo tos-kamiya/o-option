@@ -15,7 +15,7 @@ ls *.txt | xargs -I {} head -n 3 {} > {}-head.out
 
 does NOT create `*-head.out` file for each of the `*.txt` files but creates one file `{}-head.out` containing outputs of all `head` command executions.
 
-`ooption` is here to help!
+The command `o-o` is here to help!
 
 You can now run as follows:
 
@@ -41,6 +41,11 @@ Example:
 
 ## Installation
 
-To install, put a file `o-o` in any directory on PATH, e.g. `~/bin`:
+To install, copy a file `o-o` in any directory on PATH, e.g. `~/bin`.
 
-To uninstall, remove the `o-o` file:
+To uninstall, remove the file `o-o`.
+
+## License
+
+Unlicense (Public Domain).
+
