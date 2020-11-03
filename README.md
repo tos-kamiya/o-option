@@ -1,5 +1,5 @@
-ooption
-=======
+o-option
+========
 
 Add -o (save to file) option to any command. 
 
