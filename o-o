@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import shlex
+import subprocess
+
+
+__doc__ = """Spawn a command line and save output to file.
+
+Usage:
+  {argv0} OUTFILE [--eo|-e ERRFILE] command-line...
+
+Options:
+  -e ERRFILE   File to save stderr of the command line.
+  --eo         Redirect stderr to the same output file.
+
+Example:
+  {argv0} result.txt ls
+""".format(argv0=os.path.basename(__file__))
+
+
+def main():
+    outfile = errfile = None
+    option_eo = False
+
+    argv = sys.argv[1:]
+    if not argv or argv[0] in ('-h', '--help'):
+        print(__doc__)
+        return
+
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == '--':
+            break  # while
+        if a.startswith('-e'):
+            if errfile:
+                sys.exit("Error: option -e specified twice.")
+            if option_eo:
+                sys.exit("Error: option -e and --eo are mutually exclusive.")
+            if a != '-e':
+                errfile = a[2:]
+                i += 1
+            else:
+                errfile = argv[i + 1]
+                i += 2
+        elif a == '--eo':
+            if errfile:
+                sys.exit("Error: option -e and --eo are mutually exclusive.")
+            option_eo = True
+            i += 1
+        else:
+            if not outfile:
+                outfile = a
+                i += 1
+            else:
+                break  # while i
+
+    if outfile == '-':
+        outfile = None
+    if errfile == '-':
+        errfile = None
+    if option_eo:
+        errfile = outfile
+
+    eofile = None
+    if outfile == errfile:
+        eofile = outfile
+        outfile = errfile = None
+
+    print("outfile %s\nerrfile %s\neofile %s" % (outfile, errfile, eofile))
+
+    command_line = shlex.join(argv[i:]).split()
+
+    if not command_line:
+        sys.exit("Error: no command line is given")
+
+    if eofile:
+        outp = open(eofile, 'wb') if eofile else None
+        errp = subprocess.STDOUT
+    else:
+        outp = open(outfile, 'wb') if outfile else None
+        errp = open(errfile, 'wb') if errfile else None
+    r = subprocess.run(command_line, stdout=outp, stderr=errp)
+    sys.exit(r.returncode)
+
+
+if __name__ == '__main__':
+    main()

@@ -20,24 +20,27 @@ does NOT create `*-head.out` file for each of the `*.txt` files but creates one 
 You can now run as follows:
 
 ```sh
-ls *.txt | xargs -I {} ooption -o {}-head.out head -3 {}
+ls *.txt | xargs -I {} o-o {}-head.out head -3 {}
 ```
 
-## Usage:
+## Usage
 
 ```
 Spawn a command line and save output to file.
 
 Usage:
-  ooption [-o OUTFILE] [-e ERRFILE] command-line...
-  ooption --eo FILE command-line...
+  o-o OUTFILE [--eo|-e ERRFILE] command-line...
 
 Options:
-  -o OUTFILE   File to save stdout of the command line.
   -e ERRFILE   File to save stderr of the command line.
-  --eo FILE    File to save both stdout and stderr.
+  --eo         Redirect stderr to the same output file.
 
 Example:
-  ooption -o result.txt ls
+  o-o result.txt ls
 ```
 
+## Installation
+
+To install, put a file `o-o` in any directory on PATH, e.g. `~/bin`:
+
+To uninstall, remove the `o-o` file:
