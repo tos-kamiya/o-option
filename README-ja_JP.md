@@ -20,7 +20,7 @@ ls *.txt | xargs -I {} head -n 3 {} > {}-head.out
 次のように実行できます。
 
 ```sh
-ls *.txt | xargs -I {} o-o {}-head.out head -3 {}
+ls *.txt | xargs -I {} o-o -o {}-head.out head -3 {}
 ```
 
 ## 使い方
@@ -29,12 +29,15 @@ ls *.txt | xargs -I {} o-o {}-head.out head -3 {}
 コマンドラインを実行して出力をファイルに保存する。
 
 利用法:
-  o-o OUTFILE [--eo|-e ERRFILE] コマンドライン...
+  o-o [オプション] [--eo|-e ERRFILE] コマンドライン...
 
 オプション:
-  -e ERRFILE   標準エラーを保存するファイル。
-  --eo         標準エラーも同じ出力ファイルに保存する。
-  
+  -o OUTFILE   標準出力を書き出すファイル。
+  -e ERRFILE   標準エラーを書き出すファイル。
+  --eo         標準エラーを標準出力にリダイレクトする。
+  -i INFILE    標準入力として読み込むファイル。  
+  --dry-run    等価なコマンドラインをPOSIXシェルの構文で表示する。
+
 例:
   o-o result.txt ls
 ```

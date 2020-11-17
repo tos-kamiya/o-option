@@ -5,85 +5,93 @@ import os
 import shlex
 import subprocess
 
+from docopt import docopt
+
 
 __doc__ = """Spawn a command line and save output to file.
 
 Usage:
-  {argv0} OUTFILE [--eo|-e ERRFILE] command-line...
+  {argv0} [options] [-e ERRFILE|--eo] [--] <commandline>...
 
 Options:
-  -e ERRFILE   File to save stderr of the command line.
-  --eo         Redirect stderr to the same output file.
+  -o OUTFILE   File to write the stdout.
+  -e ERRFILE   File to write the stderr.
+  --eo         Redirect the stderr to the stdout.
+  -i INPFILE   File to read as the stdin.
+  --dry-run    Show equivalent command line in POSIX shell.
 
 Example:
-  {argv0} result.txt ls
+  {argv0} -o lsoutput.txt ls
 """.format(argv0=os.path.basename(__file__))
 
 
+version = "2.0.0"
+
+
 def main():
-    outfile = errfile = None
-    option_eo = False
-
-    argv = sys.argv[1:]
-    if not argv or argv[0] in ('-h', '--help'):
-        print(__doc__)
-        return
-
-    i = 0
+    options_w_param = ['-o', '-e', '-i']
+    options_wo_param = ['--eo', '--dry-run']
+    argv = sys.argv[:]
+    i = 1
     while i < len(argv):
         a = argv[i]
-        if a == '--':
-            break  # while
-        if a.startswith('-e'):
-            if errfile:
-                sys.exit("Error: option -e specified twice.")
-            if option_eo:
-                sys.exit("Error: option -e and --eo are mutually exclusive.")
-            if a != '-e':
-                errfile = a[2:]
-                i += 1
-            else:
-                errfile = argv[i + 1]
-                i += 2
-        elif a == '--eo':
-            if errfile:
-                sys.exit("Error: option -e and --eo are mutually exclusive.")
-            option_eo = True
+        if a in ['-h', '--help']:
+            print(__doc__)
+            return
+        elif a in options_w_param:
+            i += 2
+        elif any(a.startswith(o) for o in options_w_param) or a in options_wo_param:
             i += 1
+        elif a == '--':
+            del argv[i]
+            break  # while
         else:
-            if not outfile:
-                outfile = a
-                i += 1
-            else:
-                break  # while i
+            break  # while
+    argv, command_line = argv[:i], shlex.join(argv[i:]).split()
+    argv.append(":dummy_command_line:")
+
+    args = docopt(__doc__, argv, version=version)
+
+    outfile = args['-o']
+    errfile = args['-e']
+    option_eo = args['--eo']
+    infile = args['-i']
+    option_dry_run = args['--dry-run']
 
     if outfile == '-':
         outfile = None
     if errfile == '-':
         errfile = None
-    if option_eo:
-        errfile = outfile
 
-    eofile = None
-    if outfile == errfile:
-        eofile = outfile
-        outfile = errfile = None
-
-    print("outfile %s\nerrfile %s\neofile %s" % (outfile, errfile, eofile))
-
-    command_line = shlex.join(argv[i:]).split()
+    # print("outfile %s\nerrfile %s\neofile %s" % (outfile, errfile, eofile))
 
     if not command_line:
         sys.exit("Error: no command line is given")
 
-    if eofile:
-        outp = open(eofile, 'wb') if eofile else None
-        errp = subprocess.STDOUT
+    if option_dry_run:
+        redirect_args = []
+        if infile:
+            redirect_args.extend(['<', infile])
+        if option_eo:
+            if not outfile:
+                redirect_args.append('2>&1')
+            else:
+                redirect_args.extend(['&>', outfile])
+        else:
+            if outfile:
+                redirect_args.extend(['>', outfile])
+        if errfile:
+            redirect_args.extend(['2>', outfile])
+        print(' '.join(command_line + redirect_args))
     else:
+        inp = open(infile, 'rb') if infile else None
         outp = open(outfile, 'wb') if outfile else None
-        errp = open(errfile, 'wb') if errfile else None
-    r = subprocess.run(command_line, stdout=outp, stderr=errp)
-    sys.exit(r.returncode)
+        if option_eo:
+            errp = subprocess.STDOUT
+        else:
+            errp = open(errfile, 'wb') if errfile else None
+        r = subprocess.run(command_line, stdin=inp, stdout=outp, stderr=errp)
+        sys.exit(r.returncode)
 
 
 if __name__ == '__main__':

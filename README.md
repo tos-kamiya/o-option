@@ -20,7 +20,7 @@ The command `o-o` is here to help!
 You can now run as follows:
 
 ```sh
-ls *.txt | xargs -I {} o-o {}-head.out head -3 {}
+ls *.txt | xargs -I {} o-o -o {}-head.out head -3 {}
 ```
 
 ## Usage
@@ -29,14 +29,17 @@ ls *.txt | xargs -I {} o-o {}-head.out head -3 {}
 Spawn a command line and save output to file.
 
 Usage:
-  o-o OUTFILE [--eo|-e ERRFILE] command-line...
+  o-o [options] [-e ERRFILE|--eo] [--] <commandline>...
 
 Options:
-  -e ERRFILE   File to save stderr of the command line.
-  --eo         Redirect stderr to the same output file.
+  -o OUTFILE   File to write the stdout.
+  -e ERRFILE   File to write the stderr.
+  --eo         Redirect the stderr to the stdout.
+  -i INPFILE   File to read as the stdin.
+  --dry-run    Show equivalent command line in POSIX shell.
 
 Example:
-  o-o result.txt ls
+  o-o -o lsoutput.txt ls
 ```
 
 ## Installation
