@@ -13,7 +13,8 @@ o-option
 ls *.txt | xargs -I {} head -n 3 {} > {}-head.out
 ```
 
-実行すると、`*.txt`ファイルのそれぞれに`*-head.out`ファイルを生成するのではありません。すべての`head`コマンドの実行の結果を含む一つの`{}-head.out`を生成します。
+実行すると、`*.txt`ファイルのそれぞれに`*-head.out`ファイルを生成しません。
+すべての`head`コマンドの実行の結果を含む一つの`{}-head.out`を生成します。
 
 このような場合に`o-o`を使ってください。
 
@@ -39,7 +40,7 @@ ls *.txt | xargs -I {} o-o -o {}-head.out head -3 {}
   --dry-run    等価なコマンドラインをPOSIXシェルの構文で表示する。
 
 例:
-  o-o result.txt ls
+  o-o -o result.txt ls
 ```
 
 ## インストール
