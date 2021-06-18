@@ -29,18 +29,26 @@ ls *.txt | xargs -I {} o-o -o {}-head.out head -3 {}
 Spawn a command line and save output to file.
 
 Usage:
-  o-o [options] [-e ERRFILE|--eo] [--] <commandline>...
+  o-o [options] [-o OUTFILE|-r OUTFILE|--ir INOUTFILE] [--] <commandline>...
 
 Options:
-  -o OUTFILE   File to write the stdout.
-  -e ERRFILE   File to write the stderr.
+  -o OUTFILE   Redirect the standard out to the file.
+  -r OUTFILE   Redirect the standard out to a temp file and then rename the temp file to.
+  -e ERRFILE   Redirect the standard out to the file.
   --eo         Redirect the stderr to the stdout.
-  -i INPFILE   File to read as the stdin.
+  --ir INOUTFILE   Redirect both the standard in/out to the file (implicitly infers -r).
+  --io INOUT   Alias of --ir.
+  -q           Same as `-e /dev/null`.
+  -i INPFILE   File to read as the standard input.
   --dry-run    Show equivalent command line in POSIX shell.
 
 Example:
   o-o -o lsoutput.txt ls
 ```
+
+In case the option -r is specified, the output file is not generated when the command line execution fails.
+
+In case the option --ir is specified, the input file will not be overwritten when the command line execution fails.
 
 ## Installation
 

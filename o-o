@@ -3,7 +3,9 @@
 import sys
 import os
 import shlex
+import shutil
 import subprocess
+import tempfile
 
 from docopt import docopt
 
@@ -11,13 +13,17 @@ from docopt import docopt
 __doc__ = """Spawn a command line and save output to file.
 
 Usage:
-  {argv0} [options] [-e ERRFILE|--eo] [--] <commandline>...
+  {argv0} [options] [-o OUTFILE|-r OUTFILE|--ir INOUTFILE] [--] <commandline>...
 
 Options:
-  -o OUTFILE   File to write the stdout.
-  -e ERRFILE   File to write the stderr.
+  -o OUTFILE   Redirect the standard out to the file.
+  -r OUTFILE   Redirect the standard out to a temp file and then rename the temp file to.
+  -e ERRFILE   Redirect the standard out to the file.
   --eo         Redirect the stderr to the stdout.
-  -i INPFILE   File to read as the stdin.
+  --ir INOUTFILE   Redirect both the standard in/out to the file (implicitly infers -r).
+  --io INOUT   Alias of --ir.
+  -q           Same as `-e /dev/null`.
+  -i INPFILE   File to read as the standard input.
   --dry-run    Show equivalent command line in POSIX shell.
 
 Example:
@@ -25,22 +31,21 @@ Example:
 """.format(argv0=os.path.basename(__file__))
 
 
-version = "2.0.0"
+version = "3.0.0"
 
 
 def main():
-    options_w_param = ['-o', '-e', '-i']
-    options_wo_param = ['--eo', '--dry-run']
+    options_w_param = ['-o', '-r', '-e', '-i']
+    options_wo_param = ['--eo', '--dry-run', '-q', '-h', '--help']
+    options_w_param_long = ['--ir', '--io']
     argv = sys.argv[:]
     i = 1
     while i < len(argv):
         a = argv[i]
-        if a in ['-h', '--help']:
-            print(__doc__)
-            return
-        elif a in options_w_param:
+        if a in options_w_param or a in options_w_param_long:
             i += 2
-        elif any(a.startswith(o) for o in options_w_param) or a in options_wo_param:
+        elif any(a.startswith(o) for o in options_w_param) or \
+                any(a.startswith(o + '=') for o in options_w_param_long) or a in options_wo_param:
             i += 1
         elif a == '--':
             del argv[i]
@@ -52,14 +57,34 @@ def main():
 
     args = docopt(__doc__, argv, version=version)
 
-    outfile = args['-o']
     errfile = args['-e']
     option_eo = args['--eo']
+    if args['--io'] and args['--ir']:
+        sys.exit('Error: option --io and --ir are mutually exclusive.')
+    outfile = args['-o']
+    outfile_rename = args['-r']
+    option_ir = args['--io'] or args['--ir']
+    assert outfile or outfile_rename or option_ir
     infile = args['-i']
+    if option_ir:
+        if infile:
+            sys.exit('Error: option -i and --ir (or --io) are mutually exclusive.')
+        assert not outfile
+    option_q = args['-q']
     option_dry_run = args['--dry-run']
 
+    if sum(int(not not v) for v in [errfile, option_eo, option_q]) > 1:
+        sys.exit("Error: option -e, --eo, and -q are mutually exclusive.")
+
+    if option_ir == '-':
+        sys.exit("Error: option --ir's argument can not be the standard out")
+    if option_ir:
+        infile = option_ir
+        outfile_rename = option_ir
     if outfile == '-':
         outfile = None
+    if outfile_rename == '-':
+        sys.exit("Error: option -r's argument can not be the standard out")
     if errfile == '-':
         errfile = None
 
@@ -69,6 +94,10 @@ def main():
         sys.exit("Error: no command line is given")
 
     if option_dry_run:
+        post_cmd = []
+        if outfile_rename:
+            outfile = 'a-temporary-file'
+            post_cmd.extend([';', 'mv', outfile, outfile_rename])
         redirect_args = []
         if infile:
             redirect_args.extend(['<', infile])
@@ -82,15 +111,43 @@ def main():
                 redirect_args.extend(['>', outfile])
         if errfile:
             redirect_args.extend(['2>', outfile])
-        print(' '.join(command_line + redirect_args))
+        if option_q:
+            redirect_args.extend(['2>', '/dev/null'])
+        print(' '.join(command_line + redirect_args + post_cmd))
     else:
         inp = open(infile, 'rb') if infile else None
-        outp = open(outfile, 'wb') if outfile else None
+
+        if outfile_rename:
+            fd, tempfp = tempfile.mkstemp()
+            os.close(fd)
+            outfile = tempfp
+        if outfile:
+            outp = open(outfile, 'wb')
+        else:
+            outp = None
         if option_eo:
             errp = subprocess.STDOUT
         else:
             errp = open(errfile, 'wb') if errfile else None
-        r = subprocess.run(command_line, stdin=inp, stdout=outp, stderr=errp)
+
+        try:
+            r = subprocess.run(command_line, stdin=inp, stdout=outp, stderr=errp)
+        except Exception as e:
+            if outfile_rename:
+                outp.close()
+                os.remove(outfile)
+            raise e
+
+        if infile:
+            inp.close()  # Close the infile in preparation for the case that the outfile_rename has the same name as the infile.
+
+        if outfile_rename:
+            outp.close()
+            if r.returncode == 0:
+                shutil.move(outfile, outfile_rename)
+            else:
+                os.remove(outfile)
+
         sys.exit(r.returncode)
 
 
